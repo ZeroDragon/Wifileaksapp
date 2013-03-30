@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Wifileaks App</title>
+		<style>
+			.pullright{float:right;text-align: right;}
+			.pullleft{float: left;}
+			.green{color:#0a0;}
+			.red{color:#a00;}
+		</style>
+		<script src="lib/json2.js"> </script>
+		<link rel="stylesheet" href="lib/jquery.mobile-1.3.0.min.css" />
+		<script src="lib/jquery-1.8.2.min.js"></script>
+		<script src="lib/jquery.mobile-1.3.0.min.js"></script>
+		
+		<script>
+			var aps = {
+				'timer' : false,
+				'list' : false,
+				'init' : function(){
+					if(typeof(localStorage.wifileaks) == 'undefined'){
+						aps.loadExternal();
+					}else{
+						aps.list = JSON.parse(localStorage.wifileaks);
+						aps.populate();
+					}
+				},
+				populate:function(){
+					$('#autocompleter').html('');
+					for (var i = 0; i < aps.list.length; i++) {						
+						$('#autocompleter').append(
+							$('<li/>').append(
+								$('<div/>',{'class':'pullleft'}).append(
+									$('<div/>',{'class':'name'}).append(aps.list[i].label),
+									$('<div/>',{'class':'datos'}).append('Key: '+aps.list[i].value)
+								),
+								$('<div/>',{'class':'pullright'}).append(
+									$('<div/>',{'class':(aps.list[i].bandera=='true') ? 'red' : 'green'}).append((aps.list[i].bandera=='true') ? 'Flagged' : 'Working'),
+									$('<div/>',{'class':'tipo'}).append(aps.list[i].tipo)
+								),
+								$('<div/>',{'style':'clear:both;'})
+							)
+						);
+					}
+					$('#autocompleter').listview( "refresh" );
+					$('#autocompleter').trigger( "updatelayout");
+				},
+				'sorteador' : function(data){
+					data.sort(function(a,b){
+						return (a.label).localeCompare((b.label));
+					});
+				return data;
+				},
+				'loadExternal' : function(){
+					$.get('http://zerothedragon.com/wifileaks/json/',{'accion':'getAll'},function(data){
+						data = JSON.stringify(aps.sorteador(JSON.parse(data)));
+						localStorage.wifileaks = data;
+						aps.list = JSON.parse(localStorage.wifileaks);
+						aps.populate();
+					});
+				},
+				'addnew' : function(){
+					alert('coming soon');
+				}
+			};
+			$(document).ready(function(){
+				aps.init();
+			});	
+		</script>
+	</head>
+	<body>
+
+		<div data-role="header">
+			<a data-role="button" data-icon="plus" onclick="aps.addnew();" >Agregar AP</a>
+		  <h1>Wifileaks App</h1>
+		  <a data-role="button" data-icon="refresh" onclick="aps.loadExternal();" >Recargar AP's</a>
+		</div>
+
+		<div data-role="content">
+			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Buscar Access Point..." id="autocompleter"></ul>
+		</div>
+
+	</body>
+</html>
