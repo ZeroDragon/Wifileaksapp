@@ -8,6 +8,9 @@
 			.pullleft{float: left;}
 			.green{color:#0a0;}
 			.red{color:#a00;}
+			.btnEdit{margin-right:0!important;}
+			.fineprint{font:normal 10px Arial;height: 100px;overflow: auto;}
+			.fineprint b{font-size: 15px}
 		</style>
 		<script src="lib/json2.js"> </script>
 		<link rel="stylesheet" href="lib/jquery.mobile-1.3.0.min.css" />
@@ -36,7 +39,21 @@
 									$('<div/>',{'class':'datos'}).append('Key: '+aps.list[i].value)
 								),
 								$('<div/>',{'class':'pullright'}).append(
-									$('<div/>',{'class':(aps.list[i].bandera=='true') ? 'red' : 'green'}).append((aps.list[i].bandera=='true') ? 'Flagged' : 'Working'),
+									$('<div/>',{'class':'editbtn','data-id':aps.list[i].id}).append(
+										$('<a/>',{
+											'href':'#mypanel',
+											'data-role':'button',
+											'data-icon':'edit',
+											'data-iconpos':'notext',
+											'data-theme':'c',
+											'data-inline':'true',
+											'class':'btnEdit'
+										}).append('Edit')
+										//'<a href="#mypanel" data-role="button" data-id="" data-icon="edit" class="btnEdit" data-iconpos="notext" data-theme="c" data-inline="true">Edit</a>'
+									)
+								),
+								$('<div/>',{'class':'pullright'}).append(
+									$('<div/>',{'class':(aps.list[i].bandera=='true') ? 'red' : 'green'}).append((aps.list[i].bandera=='true') ? 'Offline' : 'Online'),
 									$('<div/>',{'class':'tipo'}).append(aps.list[i].tipo)
 								),
 								$('<div/>',{'style':'clear:both;'})
@@ -44,7 +61,7 @@
 						);
 					}
 					$('#autocompleter').listview( "refresh" );
-					$('#autocompleter').trigger( "updatelayout");
+					$('a.btnEdit').button();
 				},
 				'sorteador' : function(data){
 					data.sort(function(a,b){
@@ -58,25 +75,98 @@
 						localStorage.wifileaks = data;
 						aps.list = JSON.parse(localStorage.wifileaks);
 						aps.populate();
+						location.reload();
 					});
-				},
-				'addnew' : function(){
-					alert('coming soon');
 				}
 			};
 			$(document).ready(function(){
 				aps.init();
-			});	
+				$('#goNew').click(function(){
+					$('#mypanel input[name="id"]').val('-1');
+					$('#mypanel input').filter(':checkbox').prop('checked',false).checkboxradio("refresh");
+					$('#mypanel input[type="text"]').val("");
+					$('#mypanel select').val('Sin llave').selectmenu('refresh', true);
+					$('.newAP').show();
+					$('.alreadyAP').hide();
+				});
+				$('.btnEdit').click(function(){
+					$('#mypanel input[name="id"]').val($(this).parent().data('id'));
+					$('#mypanel input[type="checkbox"]').prop('checked',false).checkboxradio("refresh");
+					$('#mypanel input[type="text"]').val("");
+					$('#mypanel select').val('Sin llave').selectmenu('refresh', true);
+					$('.newAP').hide();
+					$('.alreadyAP').show();
+				});
+				$('#leGoBtn').click(function(){
+					var obj = {};
+					$('#mypanel input, #mypanel select').each(function(){
+						if($(this).attr('type')=='checkbox'){
+							obj[$(this).attr('name')] = $(this).is(':checked');
+						}else{
+							obj[$(this).attr('name')] = $(this).val();
+						}
+					});
+					if(obj.id=='-1'){
+						if(obj.label == ''){
+							alert('Debes especificar un nombre');
+							return;
+						}
+						if(obj.key == ''){
+							alert('Debes especificar una llave');
+							return;
+						}
+						obj.accion = 'push';
+					}else{
+						obj.accion = 'update';
+					}
+					if(!obj.accept){
+						alert('Debes aceptar los términos y condiciones');
+						return;
+					}
+					$.getJSON('http://zerothedragon.com/wifileaks/json/',obj,function(data){
+						//console.log(data);
+						aps.loadExternal();
+					});
+				});
+			});
+
 		</script>
 	</head>
 	<body>
-
 		<div data-role="header">
-			<a data-role="button" data-icon="plus" onclick="aps.addnew();" >Agregar AP</a>
+			<a href="#mypanel" data-role="button" id="goNew" data-icon="plus" >Agregar AP</a>
 		  <h1>Wifileaks App</h1>
 		  <a data-role="button" data-icon="refresh" onclick="aps.loadExternal();" >Recargar AP's</a>
 		</div>
+		<div data-role="panel" id="mypanel">
+			<input type="hidden" name="id" />
+			<div class="newAP section">
+				<label>Nombre de AP:<br/>
+				<input type="text" name="label"/></label>
 
+				<label>Llave:<br/>
+				<input type="text" name="key"/></label>
+
+				<label>Tipo<br/>
+				<select name="type">
+					<option value="Sin llave">Sin llave</option>
+					<option value="WEP">WEP</option>
+					<option value="WPA">WPA</option>
+				</select></label>
+			</div>
+			<div class="alreadyAP section">
+				<label><input type="checkbox" name="flag"/>Marcar incorrecta</label>
+			</div>
+			
+			<div class="fineprint">
+				<b>Términos y condiciones:</b><br/>
+				1) Wifileaks no se hace responsable por el contenido subido por el usuario 2) El usuario sólo tiene que subir wifis que tiene permiso o los que son propiedad del usuario. 3) Wifileaks se reserva el derecho a borrar cualquier contenido en cualquier momento 4) El usuario debe saber cómo utilizar wifileaks antes de publicar un wifi en el DB 5) wifis incompletos serán eliminados sin pedir correcciones. Wifileaks es el dominio, página web, los servidores y el equipo detrás del proyecto. El usuario es la persona que utiliza el servicio wifileaks para buscar o publicar. Todos los wifis debe tener el nombre del punto de acceso, la clave y tipo encriptación. Si el wifi está en wifileaks sin su permiso y no lo quiere aquí, pida su remoción en twitter @wifileaks
+				<br/><br/><b>Terms and conditions:</b><br/>
+				1) Wifileaks is not responsible for the content uploaded by the user 2) The user must only upload wifis that he has permission or the ones that the user owns. 3) Wifileaks reserves the rights to erase any content in any moment 4) The user must known how to use wifileaks before posting a wifi on the DB 5) Incomplete wifis will be deleted without asking for corrections. Wifileaks is the domain, webpage, servers and team behind the project. The user is the person that uses wifileaks's service to search or post. All wifis must have access point's name, key, and encription type. If your wifi is on wifileaks without your permission and don't want it here, ask for its removal on twitter @wifileaks
+			</div>
+			<label><input type="checkbox" name="accept"/>Acepto</label>
+			<input type="button" value="Enviar" name="enviar" id="leGoBtn" data-theme="b"/>
+		</div>
 		<div data-role="content">
 			<ul data-role="listview" data-inset="true" data-filter="true" data-filter-placeholder="Buscar Access Point..." id="autocompleter"></ul>
 		</div>
